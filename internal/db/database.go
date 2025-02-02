@@ -31,7 +31,7 @@ func init() {
 	if err != nil {
 		log.Println("Ошибка при подключении к БД:", err)
 	}
-
+	defer db.Close()
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(25)
 	db.SetConnMaxLifetime(5 * time.Minute)
@@ -60,7 +60,7 @@ func AddDataToDB(CSVFilePath string) (*models.Result, error) {
 	reader.Comma = ';'
 
 	if _, err := reader.Read(); err != nil {
-		log.Println("Ошибка при удалении файла:", err)
+		log.Println("Ошибка при чтении файла:", err)
 		return nil, err
 	}
 
