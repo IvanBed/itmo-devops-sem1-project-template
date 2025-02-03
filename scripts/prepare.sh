@@ -13,7 +13,7 @@ function setup_database() {
     PGPASSWORD=$DB_PASSWORD psql -U $DB_USER -h $PG_HOST -p $PG_PORT -d $DB_NAME <<EOF
     CREATE TABLE IF NOT EXISTS prices
     (
-        id integer,
+        id SERIAL PRIMARY KEY,
         create_date timestamp without time zone,
         name character varying(1000) COLLATE pg_catalog."default",
         category character varying(1000) COLLATE pg_catalog."default",
