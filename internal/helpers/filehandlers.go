@@ -57,7 +57,7 @@ func CSVToSlice(CSVFilePath string) ([]models.Product, error) {
 			log.Println("Ошибка при парсинге id")
 			id = 0
 		}
-		
+
 		name := tokens[1]
 		category := tokens[2]
 		price, err := strconv.ParseFloat(tokens[3], 64)
@@ -134,32 +134,31 @@ func SliceToZip(rows []models.Product) (string, error) {
 
 	fileInfo, err := CSVdatafile.Stat()
 	if err != nil {
-		log.Println()
+		log.Println("Ошибка при получении информации о файле:", err)
 		return "", nil
 	}
 
 	header, err := zip.FileInfoHeader(fileInfo)
 	if err != nil {
-		log.Println()
+		log.Println("Ошибка при создании заголовка zip файла:", err)
 		return "", nil
 	}
 	header.Name = CSVdatafile.Name()
 
 	writerPart, err := zipWriter.CreateHeader(header)
 	if err != nil {
-		log.Println()
+		log.Println("Ошибка при создании части записи для zip архива:", err)
 		return "", nil
 	}
 
 	CSVdatafile.Seek(0, 0)
 	_, err = io.Copy(writerPart, CSVdatafile)
 	if err != nil {
-		log.Println()
+		log.Println("Ошибка при копировании данных в часть zip архива:", err)
 		return "", nil
 	}
 
 	log.Println("Добавлен в архив:", CSVdatafile.Name())
-	log.Println("тест:", zipFile.Name())
 
 	return zipFile.Name(), nil
 }

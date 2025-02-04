@@ -34,46 +34,37 @@ func init() {
 }
 
 func AddDataToDB(CSVFilePath string) (*models.Result, error) {
-	fmt.Println("test0")
+
 	records, err := helpers.CSVToSlice(CSVFilePath)
 	if err != nil {
+		log.Println("Ошибка при отображении файла в слайс.")
 		return nil, err
 	}
-	fmt.Println("test1")
+
 	tx, err := db.Begin()
 	if err != nil {
-		
+		log.Println("Ошибка создании транзакции.")
 		return nil, err
 	}
-	fmt.Println("test11")
+
 	for _, val := range records {
 
 		_, err = tx.Exec(`INSERT INTO prices (name, category, price, create_date) VALUES ($1, $2, $3, $4)`, val.Name, val.Category, val.Price, val.CreationTime)
 		if err != nil {
+			log.Println("Ошибка при внесении кортежа в БД.")
 			tx.Rollback()
-			fmt.Println("test2")
 			return nil, err
 		}
 	}
-	fmt.Println("test3")
+
 	row := tx.QueryRow("SELECT COUNT(category) AS totalCategories, SUM(price) AS totalPrice FROM prices")
 
-	if err != nil {
-
-	}
-	fmt.Println("test4")
-	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Println("")
-		} else {
-			tx.Rollback()
-			return nil, err
-		}
-	}
+	//надо добавить обработку ошибок
 
 	result := models.Result{}
 	result.TotalItems = len(records)
 	if err := row.Scan(&result.TotalCategories, &result.TotalPrice); err != nil {
+		log.Println("Ошибка при получении данных из кортежа.")
 		tx.Rollback()
 		return nil, err
 	}
@@ -87,32 +78,39 @@ func GetDataFromDB() (string, error) {
 
 	rows, err := db.Query("SELECT id, name, category, price, create_date FROM prices")
 	if err != nil {
-		log.Println(err)
+		if err == sql.ErrNoRows {
+			log.Println("Таблица price пуста.")
+		} else {
+			log.Println("Ошибка при закрытии rows.")
+
+		}
 		return "", err
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err = rows.Close(); err != nil {
+			log.Println("Ошибка при завершении цикла обхода полученных из БД данных.")
+		}
+	}()
 
 	var productSlice []models.Product
 
 	for rows.Next() {
 		p := models.Product{}
 		if err := rows.Scan(&p.Id, &p.Name, &p.Category, &p.Price, &p.CreationTime); err != nil {
-			continue
+			log.Printf("Ошибка сканирования строки.")
 		} else {
 			productSlice = append(productSlice, p)
 		}
 	}
 
-	//Добавить обработку ошибок
 	if err = rows.Err(); err != nil {
-		log.Println(err)
-	}
-
-	if err = rows.Close(); err != nil {
-		log.Println(err)
+		log.Println("Цикл обхода данных из БД завершился с ошибкой.")
+		return "", err
 	}
 
 	zipFilePath, err := helpers.SliceToZip(productSlice)
+
 	return zipFilePath, err
 
 }
