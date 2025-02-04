@@ -3,7 +3,6 @@ package handlers
 import (
 	"archive/zip"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -122,7 +121,6 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(resultJSON)
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(resultJSON); err != nil {
