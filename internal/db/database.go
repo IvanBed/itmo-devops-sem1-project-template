@@ -14,7 +14,7 @@ import (
 
 var db *sql.DB
 
-func init() {
+func InitDB() {
 	HOST := os.Getenv("POSTGRES_HOST")
 	PORT := os.Getenv("POSTGRES_PORT")
 	DATABASE := os.Getenv("POSTGRES_DB")
@@ -31,6 +31,17 @@ func init() {
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(25)
 	db.SetConnMaxLifetime(5 * time.Minute)
+}
+
+func CloseDB() {
+	if db != nil {
+		err := db.Close()
+		if err != nil {
+			log.Println("Ошибка при закрытии подключения к БД.")
+		} else {
+			log.Println("Подключение к БД закрыто.")
+		}
+	}
 }
 
 func AddDataToDB(CSVFilePath string) (*models.Result, error) {
@@ -58,8 +69,6 @@ func AddDataToDB(CSVFilePath string) (*models.Result, error) {
 	}
 
 	row := tx.QueryRow("SELECT COUNT(category) AS totalCategories, SUM(price) AS totalPrice FROM prices")
-
-	//надо добавить обработку ошибок
 
 	result := models.Result{}
 	result.TotalItems = len(records)
