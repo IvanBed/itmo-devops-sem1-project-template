@@ -34,6 +34,7 @@ func InitDB() {
 }
 
 func CloseDB() {
+
 	if db != nil {
 		err := db.Close()
 		if err != nil {
@@ -44,9 +45,9 @@ func CloseDB() {
 	}
 }
 
-func AddDataToDB(CSVFilePath string) (*models.Result, error) {
+func AddDataToDB(CSVFile *os.File) (*models.Result, error) {
 
-	records, err := helpers.CSVToSlice(CSVFilePath)
+	records, err := helpers.CSVToSlice(CSVFile)
 	if err != nil {
 		log.Println("Ошибка при отображении файла в слайс.")
 		return nil, err

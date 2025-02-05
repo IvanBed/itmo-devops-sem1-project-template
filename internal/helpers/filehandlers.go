@@ -12,24 +12,13 @@ import (
 	"strings"
 )
 
-func CSVToSlice(CSVFilePath string) ([]models.Product, error) {
+func CSVToSlice(CSVFile *os.File) ([]models.Product, error) {
 
-	CSVFile, err := os.Open(CSVFilePath)
+	/*CSVFile, err := os.Open(CSVFilePath)
 	if err != nil {
 		log.Println("Ошибка при попытке открыть файл", err)
 		return nil, err
-	}
-
-	defer func() {
-		if err := CSVFile.Close(); err != nil {
-			log.Println("Ошибка при попытке закрыть файл", err)
-		}
-	}()
-	defer func() {
-		if err := os.Remove(CSVFile.Name()); err != nil {
-			log.Println("Ошибка при удалении файла:", err)
-		}
-	}()
+	}*/
 
 	reader := csv.NewReader(CSVFile)
 	reader.Comma = ';'

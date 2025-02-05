@@ -13,4 +13,3 @@ type Product struct {
 	Category     string
 	Price        float64
 }
-
