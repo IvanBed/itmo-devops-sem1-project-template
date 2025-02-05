@@ -77,17 +77,32 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	defer rZip.Close()
 
 	var csvFound bool
-	var CSVFilePath string
+	var CSVFile *os.File
+
+	defer func() {
+		if CSVFile != nil {
+			if err := CSVFile.Close(); err != nil {
+				log.Println("Ошибка при попытке закрыть файл", err)
+			}
+		}
+	}()
+	defer func() {
+		if CSVFile != nil {
+			if err := os.Remove(CSVFile.Name()); err != nil {
+				log.Println("Ошибка при удалении файла:", err)
+			}
+		}
+	}()
 
 	for _, f := range rZip.File {
 		if filepath.Ext(f.Name) == ".csv" {
-			outFile, err := os.Create("data.csv")
+			CSVFile, err = os.Create("data.csv")
 			if err != nil {
 				http.Error(w, "Ошибка при создании CSV-файла", http.StatusInternalServerError)
 				log.Println("Ошибка при создании CSV-файла:", err)
 				return
 			}
-			defer outFile.Close()
+			//defer outFile.Close()
 
 			zipFile, err := f.Open()
 			if err != nil {
@@ -97,13 +112,13 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 			}
 			defer zipFile.Close()
 
-			if _, err := io.Copy(outFile, zipFile); err != nil {
+			if _, err := io.Copy(CSVFile, zipFile); err != nil {
 				http.Error(w, "Ошибка при копировании CSV-файла", http.StatusInternalServerError)
 				log.Println("Ошибка при копировании CSV-файла:", err)
 				return
 			}
 			csvFound = true
-			CSVFilePath = outFile.Name()
+			//CSVFilePath = outFile.Name()
 			break
 		}
 	}
@@ -114,7 +129,7 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resultJSON, err := db.AddDataToDB(CSVFilePath)
+	resultJSON, err := db.AddDataToDB(CSVFile)
 	if err != nil {
 		http.Error(w, "Ошибка при добавлении данных в БД", http.StatusInternalServerError)
 		log.Println("Ошибка при добавлении данных в БД:", err)
