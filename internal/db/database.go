@@ -45,12 +45,10 @@ func CloseDB() {
 	}
 }
 
-func AddDataToDB(CSVFile *os.File) (*models.Result, error) {
+func AddDataToDB(records []models.Product) (*models.Result, error) {
 
-	records, err := helpers.CSVToSlice(CSVFile)
-	if err != nil {
-		log.Println("Ошибка при отображении файла в слайс.")
-		return nil, err
+	if records == nil {
+
 	}
 
 	tx, err := db.Begin()

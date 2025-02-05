@@ -1,14 +1,12 @@
 package handlers
 
 import (
-	"archive/zip"
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"project_sem/internal/db"
+	"project_sem/internal/helpers"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {
@@ -51,85 +49,17 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	tempZipFile, err := os.CreateTemp("", "upload-*.zip")
-	if err != nil {
-		http.Error(w, "Ошибка при создании временного файла", http.StatusInternalServerError)
-		log.Println("Ошибка при создании временного файла:", err)
-		return
-	}
-	defer os.Remove(tempZipFile.Name())
-	defer tempZipFile.Close()
-
 	log.Printf("Получен файл: %s", handler.Filename)
 
-	if _, err := io.Copy(tempZipFile, file); err != nil {
-		http.Error(w, "Ошибка при записи в временный файл", http.StatusInternalServerError)
-		log.Println("Ошибка при записи в временный файл:", err)
-		return
-	}
+	dataSlice, err := helpers.ProcessZIPData(file)
 
-	rZip, err := zip.OpenReader(tempZipFile.Name())
 	if err != nil {
-		http.Error(w, "Ошибка при открытии ZIP-файла", http.StatusInternalServerError)
-		log.Println("Ошибка при открытии ZIP-файла:", err)
-		return
-	}
-	defer rZip.Close()
-
-	var csvFound bool
-	var CSVFile *os.File
-
-	defer func() {
-		if CSVFile != nil {
-			if err := CSVFile.Close(); err != nil {
-				log.Println("Ошибка при попытке закрыть файл", err)
-			}
-		}
-	}()
-	defer func() {
-		if CSVFile != nil {
-			if err := os.Remove(CSVFile.Name()); err != nil {
-				log.Println("Ошибка при удалении файла:", err)
-			}
-		}
-	}()
-
-	for _, f := range rZip.File {
-		if filepath.Ext(f.Name) == ".csv" {
-			CSVFile, err = os.Create("data.csv")
-			if err != nil {
-				http.Error(w, "Ошибка при создании CSV-файла", http.StatusInternalServerError)
-				log.Println("Ошибка при создании CSV-файла:", err)
-				return
-			}
-			//defer outFile.Close()
-
-			zipFile, err := f.Open()
-			if err != nil {
-				http.Error(w, "Ошибка при открытии файла внутри ZIP", http.StatusInternalServerError)
-				log.Println("Ошибка при открытии файла внутри ZIP:", err)
-				return
-			}
-			defer zipFile.Close()
-
-			if _, err := io.Copy(CSVFile, zipFile); err != nil {
-				http.Error(w, "Ошибка при копировании CSV-файла", http.StatusInternalServerError)
-				log.Println("Ошибка при копировании CSV-файла:", err)
-				return
-			}
-			csvFound = true
-			//CSVFilePath = outFile.Name()
-			break
-		}
-	}
-
-	if !csvFound {
-		http.Error(w, "CSV-файл не найден в ZIP-архиве", http.StatusBadRequest)
-		log.Println("CSV-файл не найден в ZIP-архиве")
+		http.Error(w, "Ошибка при чтении ZIP архива в слайс.", http.StatusInternalServerError)
+		log.Println("Ошибка при чтении ZIP архива в слайс:", err)
 		return
 	}
 
-	resultJSON, err := db.AddDataToDB(CSVFile)
+	resultJSON, err := db.AddDataToDB(dataSlice)
 	if err != nil {
 		http.Error(w, "Ошибка при добавлении данных в БД", http.StatusInternalServerError)
 		log.Println("Ошибка при добавлении данных в БД:", err)
@@ -137,7 +67,6 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-
 	if err := json.NewEncoder(w).Encode(resultJSON); err != nil {
 		http.Error(w, "Ошибка в создании JSON файла", http.StatusInternalServerError)
 		log.Println("Ошибка в создании JSON файла", err)

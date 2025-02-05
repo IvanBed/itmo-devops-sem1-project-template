@@ -2,23 +2,24 @@ package helpers
 
 import (
 	"archive/zip"
+	"bytes"
 	"encoding/csv"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"project_sem/internal/models"
 	"strconv"
 	"strings"
 )
 
-func CSVToSlice(CSVFile *os.File) ([]models.Product, error) {
+func CSVToSlice(CSVFile io.Reader) ([]models.Product, error) {
 
-	/*CSVFile, err := os.Open(CSVFilePath)
-	if err != nil {
-		log.Println("Ошибка при попытке открыть файл", err)
-		return nil, err
-	}*/
+	if CSVFile == nil {
+		log.Println("Файл не передан")
+		return nil, nil
+	}
 
 	reader := csv.NewReader(CSVFile)
 	reader.Comma = ';'
@@ -119,8 +120,6 @@ func SliceToZip(rows []models.Product) (string, error) {
 	zipWriter := zip.NewWriter(zipFile)
 	defer zipWriter.Close()
 
-	// Дописать вывод в лог ошибок
-
 	fileInfo, err := CSVdatafile.Stat()
 	if err != nil {
 		log.Println("Ошибка при получении информации о файле:", err)
@@ -150,4 +149,47 @@ func SliceToZip(rows []models.Product) (string, error) {
 	log.Println("Добавлен в архив:", CSVdatafile.Name())
 
 	return zipFile.Name(), nil
+}
+
+func ProcessZIPData(r io.Reader) ([]models.Product, error) {
+
+	buf := bytes.NewBuffer(nil)
+	if _, err := io.Copy(buf, r); err != nil {
+		log.Println("Ошибка при чтении файла", err)
+		return nil, err
+	}
+
+	zipReader, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	if err != nil {
+		log.Println("Ошибка при распаковке архива", err)
+		return nil, err
+	}
+
+	var CSVFile io.ReadCloser
+	for _, f := range zipReader.File {
+		if filepath.Ext(f.Name) == ".csv" {
+
+			CSVFile, err = f.Open()
+
+			if err != nil {
+				log.Println("Ошибка при открытии файла внутри архива", err)
+				return nil, err
+			}
+			break
+		}
+	}
+
+	if CSVFile == nil {
+		log.Println("CSV файл не найден в архиве", err)
+		return nil, err
+	}
+
+	dataSlice, err := CSVToSlice(CSVFile)
+	if err != nil {
+		log.Println("Ошибка при преобразовании CSV в слайс", err)
+		return nil, err
+	}
+
+	CSVFile.Close()
+	return dataSlice, nil
 }
