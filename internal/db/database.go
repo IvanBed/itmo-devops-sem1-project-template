@@ -38,9 +38,9 @@ func CloseDB() {
 	if db != nil {
 		err := db.Close()
 		if err != nil {
-			log.Println("Ошибка при закрытии подключения к БД.")
+			log.Println("Ошибка при закрытии подключения к БД:", err)
 		} else {
-			log.Println("Подключение к БД закрыто.")
+			log.Println("Подключение к БД закрыто:", err)
 		}
 	}
 }
@@ -48,12 +48,13 @@ func CloseDB() {
 func AddDataToDB(records []models.Product) (*models.Result, error) {
 
 	if records == nil {
-
+		log.Println("Переданный аргумент функции AddDataToDB равен nil.")
+		return nil, nil
 	}
 
 	tx, err := db.Begin()
 	if err != nil {
-		log.Println("Ошибка создании транзакции.")
+		log.Println("Ошибка создании транзакции:", err)
 		return nil, err
 	}
 
@@ -61,7 +62,7 @@ func AddDataToDB(records []models.Product) (*models.Result, error) {
 
 		_, err = tx.Exec(`INSERT INTO prices (name, category, price, create_date) VALUES ($1, $2, $3, $4)`, val.Name, val.Category, val.Price, val.CreationTime)
 		if err != nil {
-			log.Println("Ошибка при внесении кортежа в БД.")
+			log.Println("Ошибка при внесении кортежа в БД:", err)
 			tx.Rollback()
 			return nil, err
 		}
@@ -71,9 +72,12 @@ func AddDataToDB(records []models.Product) (*models.Result, error) {
 
 	result := models.Result{}
 	result.TotalItems = len(records)
+
 	if err := row.Scan(&result.TotalCategories, &result.TotalPrice); err != nil {
-		log.Println("Ошибка при получении данных из кортежа.")
+
+		log.Println("Ошибка при получении данных из кортежа:", err)
 		tx.Rollback()
+
 		return nil, err
 	}
 
@@ -89,7 +93,7 @@ func GetDataFromDB() (string, error) {
 		if err == sql.ErrNoRows {
 			log.Println("Таблица price пуста.")
 		} else {
-			log.Println("Ошибка при закрытии rows.")
+			log.Println("Ошибка при закрытии rows:", err)
 
 		}
 		return "", err
@@ -97,7 +101,7 @@ func GetDataFromDB() (string, error) {
 
 	defer func() {
 		if err = rows.Close(); err != nil {
-			log.Println("Ошибка при завершении цикла обхода полученных из БД данных.")
+			log.Println("Ошибка при завершении цикла обхода полученных из БД данных:", err)
 		}
 	}()
 
@@ -106,14 +110,14 @@ func GetDataFromDB() (string, error) {
 	for rows.Next() {
 		p := models.Product{}
 		if err := rows.Scan(&p.Id, &p.Name, &p.Category, &p.Price, &p.CreationTime); err != nil {
-			log.Printf("Ошибка сканирования строки.")
+			log.Println("Ошибка сканирования строки:", err)
 		} else {
 			productSlice = append(productSlice, p)
 		}
 	}
 
 	if err = rows.Err(); err != nil {
-		log.Println("Цикл обхода данных из БД завершился с ошибкой.")
+		log.Println("Цикл обхода данных из БД завершился с ошибкой:", err)
 		return "", err
 	}
 

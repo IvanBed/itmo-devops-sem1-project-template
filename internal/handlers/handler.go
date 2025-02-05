@@ -41,15 +41,13 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 
 func handlePost(w http.ResponseWriter, r *http.Request) {
 
-	file, handler, err := r.FormFile("file")
+	file, _, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, "Ошибка при чтении файла из запроса", http.StatusBadRequest)
 		log.Println("Ошибка при чтении файла из запроса:", err)
 		return
 	}
 	defer file.Close()
-
-	log.Printf("Получен файл: %s", handler.Filename)
 
 	dataSlice, err := helpers.ProcessZIPData(file)
 
@@ -59,7 +57,7 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resultJSON, err := db.AddDataToDB(dataSlice)
+	resultStruct, err := db.AddDataToDB(dataSlice)
 	if err != nil {
 		http.Error(w, "Ошибка при добавлении данных в БД", http.StatusInternalServerError)
 		log.Println("Ошибка при добавлении данных в БД:", err)
@@ -67,9 +65,9 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(resultJSON); err != nil {
+	if err := json.NewEncoder(w).Encode(resultStruct); err != nil {
 		http.Error(w, "Ошибка в создании JSON файла", http.StatusInternalServerError)
-		log.Println("Ошибка в создании JSON файла", err)
+		log.Println("Ошибка в создании JSON файла:", err)
 		return
 	}
 

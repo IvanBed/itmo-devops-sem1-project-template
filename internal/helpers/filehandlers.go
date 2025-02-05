@@ -44,7 +44,7 @@ func CSVToSlice(CSVFile io.Reader) ([]models.Product, error) {
 
 		id, err := strconv.Atoi(tokens[0])
 		if err != nil {
-			log.Println("Ошибка при парсинге id")
+			log.Println("Ошибка при парсинге id:", err)
 			id = 0
 		}
 
@@ -53,7 +53,7 @@ func CSVToSlice(CSVFile io.Reader) ([]models.Product, error) {
 		price, err := strconv.ParseFloat(tokens[3], 64)
 		creationTime := tokens[4]
 		if err != nil {
-			log.Println("Ошибка при парсинге price")
+			log.Println("Ошибка при парсинге price:", err)
 			price = 0
 		}
 
@@ -74,17 +74,17 @@ func SliceToZip(rows []models.Product) (string, error) {
 
 	CSVdatafile, err := os.Create("data.csv")
 	if err != nil {
-		log.Println("Ошбика в создании CSV файла.")
+		log.Println("Ошбика в создании CSV файла:", err)
 		return "", err
 	}
 	defer func() {
 		if err := CSVdatafile.Close(); err != nil {
-			log.Println("Ошибка при попытке закрыть файл", err)
+			log.Println("Ошибка при попытке закрыть файл:", err)
 		}
 	}()
 	defer func() {
 		if err := os.Remove(CSVdatafile.Name()); err != nil {
-			log.Println("Ошибка при удалении файла", err)
+			log.Println("Ошибка при удалении файла:", err)
 		}
 	}()
 
@@ -93,14 +93,14 @@ func SliceToZip(rows []models.Product) (string, error) {
 
 	headers := []string{"id", "name", "category", "price", "create_date"}
 	if err := writer.Write(headers); err != nil {
-		log.Println("Ошибка при записи заголовка в CSV файл")
+		log.Println("Ошибка при записи заголовка в CSV файл:", err)
 		return "", nil
 	}
 
 	for _, row := range rows {
 		strRow := []string{fmt.Sprintf("%d", row.Id), row.Name, row.Category, fmt.Sprintf("%.2f", row.Price), row.CreationTime}
 		if err := writer.Write(strRow); err != nil {
-			log.Println("Ошибка при запиcи строки в CSV файл")
+			log.Println("Ошибка при запиcи строки в CSV файл:", err)
 			continue
 		}
 
@@ -161,7 +161,7 @@ func ProcessZIPData(r io.Reader) ([]models.Product, error) {
 
 	zipReader, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 	if err != nil {
-		log.Println("Ошибка при распаковке архива", err)
+		log.Println("Ошибка при распаковке архива:", err)
 		return nil, err
 	}
 
@@ -172,7 +172,7 @@ func ProcessZIPData(r io.Reader) ([]models.Product, error) {
 			CSVFile, err = f.Open()
 
 			if err != nil {
-				log.Println("Ошибка при открытии файла внутри архива", err)
+				log.Println("Ошибка при открытии файла внутри архива:", err)
 				return nil, err
 			}
 			break
@@ -186,7 +186,7 @@ func ProcessZIPData(r io.Reader) ([]models.Product, error) {
 
 	dataSlice, err := CSVToSlice(CSVFile)
 	if err != nil {
-		log.Println("Ошибка при преобразовании CSV в слайс", err)
+		log.Println("Ошибка при преобразовании CSV в слайс:", err)
 		return nil, err
 	}
 
